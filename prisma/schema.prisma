@@ -1,0 +1,71 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id        String     @id
+  email     String     @unique
+  plan      String     @default("free")
+  urls      Url[]
+  treePages TreePage[]
+  createdAt DateTime   @default(now()) @map("created_at")
+  updatedAt DateTime   @updatedAt @map("updated_at")
+
+  @@map("users")
+}
+
+model Url {
+  id          String     @id @default(uuid())
+  userId      String?    @map("user_id") // Permitir nulo
+  longUrl     String     @map("long_url") @db.Text
+  shortUrl    String     @unique @map("short_url")
+  category    String     @default("other")
+  clicks      Int        @default(0)
+  trackingId  String?    @unique @map("tracking_id") @db.VarChar(12)
+  expiresAt   DateTime?  @map("expires_at")
+  isTreeLink  Boolean?   @default(false) @map("is_tree_link")
+  title       String?
+  description String?
+  order       Int?       @default(0)
+  treePageId  String?    @map("tree_page_id")
+  treePage    TreePage?  @relation(fields: [treePageId], references: [id], onDelete: Cascade)
+  createdAt   DateTime   @default(now()) @map("created_at")
+  updatedAt   DateTime   @updatedAt @map("updated_at")
+  user        User?      @relation(fields: [userId], references: [id], onDelete: Cascade) // Relacionamento opcional
+  clickLogs   ClickLog[]
+
+  @@map("urls")
+}
+
+
+model TreePage {
+  id          String   @id @default(uuid())
+  userId      String   @map("user_id")
+  title       String
+  description String?
+  slug        String   @unique
+  theme       Json     @default("{\"background\":\"#ffffff\",\"text\":\"#000000\",\"accent\":\"#0066ff\"}")
+  logoUrl     String?  @map("logo_url")
+  urls        Url[]
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("tree_pages")
+}
+
+model ClickLog {
+  id        String   @id @default(uuid())
+  urlId     String   @map("url_id")
+  region    String?  @db.VarChar(100)
+  city      String?  @db.VarChar(100)
+  timestamp DateTime @default(now())
+  url       Url      @relation(fields: [urlId], references: [id], onDelete: Cascade)
+
+  @@map("click_logs")
+}
